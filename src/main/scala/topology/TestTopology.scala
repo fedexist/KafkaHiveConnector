@@ -1,20 +1,18 @@
+package topology
+
 import java.util
-import org.apache.storm.trident
-import org.apache.storm.kafka.KafkaSpout
-import org.apache.storm.kafka.ZkHosts
-import org.apache.storm.kafka.SpoutConfig
-import org.apache.storm.tuple.Fields
+
 import org.apache.storm.hive.bolt.HiveBolt
 import org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper
 import org.apache.storm.hive.common.HiveOptions
-import org.apache.storm.Config
-import org.apache.storm.StormSubmitter
-import collection.JavaConverters._
-import org.apache.storm.hive.trident.HiveStateFactory
-import org.apache.storm.hive.trident.HiveUpdater
-import org.apache.storm.trident.TridentState
+import org.apache.storm.hive.trident.{HiveStateFactory, HiveUpdater}
+import org.apache.storm.kafka.{KafkaSpout, SpoutConfig, ZkHosts}
+import org.apache.storm.{Config, StormSubmitter, trident}
+import org.apache.storm.trident.{TridentState, TridentTopology}
 import org.apache.storm.trident.state.StateFactory
-import org.apache.storm.trident.TridentTopology
+import org.apache.storm.tuple.Fields
+
+import scala.collection.JavaConverters._
 
 
 
