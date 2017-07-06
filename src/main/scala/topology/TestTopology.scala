@@ -5,12 +5,13 @@ import java.util
 import org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper
 import org.apache.storm.hive.common.HiveOptions
 import org.apache.storm.hive.trident.{HiveStateFactory, HiveUpdater}
-import org.apache.storm.kafka.{BrokerHosts, KafkaSpout, SpoutConfig, ZkHosts}
+import org.apache.storm.kafka._
 import org.apache.storm.{Config, StormSubmitter, trident}
 import org.apache.storm.trident.{TridentState, TridentTopology}
 import org.apache.storm.trident.state.StateFactory
 import org.apache.storm.tuple.{Fields, Values}
 import org.apache.storm.kafka.trident.{OpaqueTridentKafkaSpout, TridentKafkaConfig}
+import org.apache.storm.spout.SchemeAsMultiScheme
 import org.apache.storm.trident.operation.BaseFunction
 import org.apache.storm.trident.operation.TridentCollector
 import org.apache.storm.trident.tuple.TridentTuple
@@ -34,7 +35,7 @@ object TestTopology extends App {
       * @param collector the TridentCollector
       **/
     override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
-      val bytes = tuple.getBinary(0)
+      val bytes = tuple.getString(0)
       val decoded = new String(bytes)
       val result = JSON.parseFull(decoded)
       result match {
@@ -81,20 +82,20 @@ object TestTopology extends App {
 
     //KafkaSpout
     val spoutConf = new TridentKafkaConfig(zkHosts, "air_traffic")
+    spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme())
     val kafkaSpout = new OpaqueTridentKafkaSpout(spoutConf)
 
     //Topology
     val topology: TridentTopology = new TridentTopology
     val factory: StateFactory = new HiveStateFactory().withOptions(hiveOptions)
     val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
-                                  .each(new Fields("bytes"), new ParseJSON , new Fields(colNames))
+                                  .each(new Fields(), new ParseJSON , new Fields(colNames))
 
     stream.partitionPersist(factory, new Fields(colNames), new HiveUpdater(), new Fields()).parallelismHint(8)
 
     //Storm Config
     val config = new Config
     config.setMaxTaskParallelism(5)
-    config.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, new Integer(2))
     config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(nimbusHost))
     config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
     config.put(Config.STORM_ZOOKEEPER_PORT, new Integer(2181))
