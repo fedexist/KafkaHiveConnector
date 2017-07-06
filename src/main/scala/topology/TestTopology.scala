@@ -36,25 +36,23 @@ class TestTopology {
       **/
     override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
       val bytes = tuple.getBinary(0)
-      try {
-        val decoded = new String(bytes)
-        val result = JSON.parseFull(decoded)
-        result match {
-          case Some(json: Map[String, Any]) => collector.emit(new Values( json("origin"),
-                                                                          json("flight"),
-                                                                          json("course"),
-                                                                          json("aircraft"),
-                                                                          json("callsign"),
-                                                                          json("registration"),
-                                                                          json("lat"),
-                                                                          json("speed"),
-                                                                          json("altitude"),
-                                                                          json("destination"),
-                                                                          json("lon"),
-                                                                          json("time")))
-          case None => println("Parsing failed")
-          case other => println("Unknown data structure: " + other)
-        }
+      val decoded = new String(bytes)
+      val result = JSON.parseFull(decoded)
+      result match {
+        case Some(json: Map[String, Any]) => collector.emit(new Values( json("origin").toString,
+                                                                          json("flight").toString,
+                                                                          json("course").toString.toInt.asInstanceOf[java.lang.Integer],
+                                                                          json("aircraft").toString,
+                                                                          json("callsign").toString,
+                                                                          json("registration").toString,
+                                                                          json("lat").toString.toDouble.asInstanceOf[java.lang.Double],
+                                                                          json("speed").toString.toInt.asInstanceOf[java.lang.Integer],
+                                                                          json("altitude").toString.toInt.asInstanceOf[java.lang.Integer],
+                                                                          json("destination").toString,
+                                                                          json("lon").toString.toDouble.asInstanceOf[java.lang.Double],
+                                                                          json("time").toString.toLong.asInstanceOf[java.lang.Long]))
+        case None => println("Parsing failed")
+        case other => println("Unknown data structure: " + other)
       }
     }
   }
@@ -81,11 +79,9 @@ class TestTopology {
         .withTxnsPerBatch(10)
         .withBatchSize(1000)
         .withIdleTimeout(10)
-    val hiveBolt = new HiveBolt(hiveOptions)
 
     //KafkaSpout
-    val broker = new ZkHosts("localhost")
-    val spoutConf = new TridentKafkaConfig(broker, "air_traffic")
+    val spoutConf = new TridentKafkaConfig(zkHosts, "air_traffic")
     val kafkaSpout = new OpaqueTridentKafkaSpout(spoutConf)
 
     //Topology
