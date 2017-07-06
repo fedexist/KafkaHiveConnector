@@ -4,6 +4,6 @@ import topology.TestTopology
 
 object Main extends App {
 
-  new TestTopology main Array()
+  TestTopology.main _
 
 }

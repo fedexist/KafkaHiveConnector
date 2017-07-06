@@ -2,7 +2,6 @@ package topology
 
 import java.util
 
-import org.apache.storm.hive.bolt.HiveBolt
 import org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper
 import org.apache.storm.hive.common.HiveOptions
 import org.apache.storm.hive.trident.{HiveStateFactory, HiveUpdater}
@@ -21,7 +20,7 @@ import scala.util.parsing.json.JSON
 
 
 
-class TestTopology {
+object TestTopology extends App {
 
 
 
@@ -57,7 +56,7 @@ class TestTopology {
     }
   }
 
-  def main(args: Array[String]): Unit = {
+  override def main(args: Array[String]): Unit = {
 
     val zkIp = "master-1.localdomain"
     val nimbusHost = "master-2.localdomain"
@@ -96,13 +95,13 @@ class TestTopology {
     val config = new Config
     config.setMaxTaskParallelism(5)
     config.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, new Integer(2))
-    config.put(Config.NIMBUS_SEEDS, nimbusHost)
+    config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(nimbusHost))
     config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
     config.put(Config.STORM_ZOOKEEPER_PORT, new Integer(2181))
     config.put(Config.STORM_ZOOKEEPER_SERVERS, util.Arrays.asList(zkIp))
 
     try
-      StormSubmitter.submitTopology("air-traffic-topology", config, topology.build())
+      StormSubmitter.submitTopology("air-traffic-topology", config, topology.build)
     catch {
       case e: Exception =>
         throw new IllegalStateException("Couldn't initialize the topology", e)
