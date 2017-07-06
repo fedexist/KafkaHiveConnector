@@ -59,13 +59,12 @@ object TestTopology extends App {
 
   override def main(args: Array[String]): Unit = {
 
-    val zkIp = "master-1.localdomain"
-    val nimbusHost = "master-2.localdomain"
-    val metaStoreURI = "master-1.localdomain"
+    val master_1 = "master-1.localdomain"
+    val master_2 = "master-2.localdomain"
     val dbName = "data_stream"
     val tblName = "air_traffic"
-    val zookeeperHost: String = zkIp + ":2181"
-    val zkHosts = new ZkHosts(zookeeperHost)
+    val zkHosts_1 = new ZkHosts(master_1 + ":2181")
+    val zkHosts_2 = new ZkHosts(master_2 + ":2181")
     val colNames: util.List[String] = Seq("origin", "flight", "course", "aircraft", "callsign",
       "registration", "lat", "lon", "altitude", "speed", "destination", "time").asJava
 
@@ -75,13 +74,13 @@ object TestTopology extends App {
         .withColumnFields(new Fields(colNames))
         .withTimeAsPartitionField("YYYY/MM/DD")
     val hiveOptions: HiveOptions =
-      new HiveOptions(metaStoreURI, dbName, tblName, mapper)
+      new HiveOptions(master_1, dbName, tblName, mapper)
         .withTxnsPerBatch(10)
         .withBatchSize(1000)
         .withIdleTimeout(10)
 
     //KafkaSpout
-    val spoutConf = new TridentKafkaConfig(zkHosts, "air_traffic")
+    val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic")
     spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme())
     val kafkaSpout = new OpaqueTridentKafkaSpout(spoutConf)
 
@@ -96,10 +95,10 @@ object TestTopology extends App {
     //Storm Config
     val config = new Config
     config.setMaxTaskParallelism(5)
-    config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(nimbusHost))
+    config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
     config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
     config.put(Config.STORM_ZOOKEEPER_PORT, new Integer(2181))
-    config.put(Config.STORM_ZOOKEEPER_SERVERS, util.Arrays.asList(zkIp))
+    config.put(Config.STORM_ZOOKEEPER_SERVERS, util.Arrays.asList(master_1, master_2))
 
     try
       StormSubmitter.submitTopology("air-traffic-topology", config, topology.build)
