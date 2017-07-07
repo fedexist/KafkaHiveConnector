@@ -17,17 +17,14 @@ import org.apache.storm.trident.operation.TridentCollector
 import org.apache.storm.trident.tuple.TridentTuple
 
 import scala.collection.JavaConverters._
-import scala.util.parsing.json.JSON
-
-
+import spray.json._
+import DefaultJsonProtocol._
 
 object TestTopology extends App {
 
 
 
   class ParseJSON extends BaseFunction {
-
-    private val HTTP_CODE_200 = 200
     /**
       * Takes a tuple adds the RDNS and emits a new tuple.
       *
@@ -35,25 +32,32 @@ object TestTopology extends App {
       * @param collector the TridentCollector
       **/
     override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
-      val bytes = tuple.getString(0)
-      val decoded = new String(bytes)
-      val result = JSON.parseFull(decoded)
+      val json_string = tuple.getString(0)
+      var result: JsValue = null
+      try {
+        result = json_string.parseJson
+      }
+      catch {
+        case unknown :Exception => println("could not parse" + json_string)
+      }
+      finally {
       result match {
-        case Some(json: Map[String, Any]) => collector.emit(new Values( json("origin").toString,
-                                                                          json("flight").toString,
-                                                                          json("course").toString.toInt.asInstanceOf[java.lang.Integer],
-                                                                          json("aircraft").toString,
-                                                                          json("callsign").toString,
-                                                                          json("registration").toString,
-                                                                          json("lat").toString.toDouble.asInstanceOf[java.lang.Double],
-                                                                          json("speed").toString.toInt.asInstanceOf[java.lang.Integer],
-                                                                          json("altitude").toString.toInt.asInstanceOf[java.lang.Integer],
-                                                                          json("destination").toString,
-                                                                          json("lon").toString.toDouble.asInstanceOf[java.lang.Double],
-                                                                          json("time").toString.toLong.asInstanceOf[java.lang.Long]))
-        case None => println("Parsing failed")
+        case json: JsObject  => collector.emit(new Values(
+                                    json.fields("origin").toString,
+                                    json.fields("flight").toString,
+                                    json.fields("course").toString,
+                                    json.fields("aircraft").toString,
+                                    json.fields("callsign").toString,
+                                    json.fields("registration").toString,
+                                    json.fields("lat").toString,
+                                    json.fields("speed").toString,
+                                    json.fields("altitude").toString,
+                                    json.fields("destination").toString,
+                                    json.fields("lon").toString,
+                                    json.fields("time").toString))
         case other => println("Unknown data structure: " + other)
       }
+}
     }
   }
 
@@ -61,8 +65,9 @@ object TestTopology extends App {
 
     val master_1 = "master-1.localdomain"
     val master_2 = "master-2.localdomain"
+    val metastore = "thrift://master-1.localdomain:9083,thrift://master-2.localdomain:9083"    
     val dbName = "data_stream"
-    val tblName = "air_traffic"
+    val tblName = "air_traffic_test"
     val zkHosts_1 = new ZkHosts(master_1 + ":2181")
     val zkHosts_2 = new ZkHosts(master_2 + ":2181")
     val colNames: util.List[String] = Seq("origin", "flight", "course", "aircraft", "callsign",
@@ -74,7 +79,7 @@ object TestTopology extends App {
         .withColumnFields(new Fields(colNames))
         .withTimeAsPartitionField("YYYY/MM/DD")
     val hiveOptions: HiveOptions =
-      new HiveOptions(master_1, dbName, tblName, mapper)
+      new HiveOptions(metastore, dbName, tblName, mapper)
         .withTxnsPerBatch(10)
         .withBatchSize(1000)
         .withIdleTimeout(10)
@@ -88,7 +93,7 @@ object TestTopology extends App {
     val topology: TridentTopology = new TridentTopology
     val factory: StateFactory = new HiveStateFactory().withOptions(hiveOptions)
     val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
-                                  .each(new Fields(), new ParseJSON , new Fields(colNames))
+                                  .each(new Fields("str"), new ParseJSON , new Fields(colNames))
 
     stream.partitionPersist(factory, new Fields(colNames), new HiveUpdater(), new Fields()).parallelismHint(8)
 
