@@ -16,9 +16,8 @@ import org.apache.storm.trident.operation.BaseFunction
 import org.apache.storm.trident.operation.TridentCollector
 import org.apache.storm.trident.tuple.TridentTuple
 
+import play.api.libs.json.{JsValue, Json}
 import scala.collection.JavaConverters._
-import spray.json._
-import DefaultJsonProtocol._
 
 object TestTopology extends App {
 
@@ -32,32 +31,24 @@ object TestTopology extends App {
       * @param collector the TridentCollector
       **/
     override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
-      val json_string = tuple.getString(0)
-      var result: JsValue = null
-      try {
-        result = json_string.parseJson
-      }
-      catch {
-        case unknown :Exception => println("could not parse" + json_string)
-      }
-      finally {
-      result match {
-        case json: JsObject  => collector.emit(new Values(
-                                    json.fields("origin").toString,
-                                    json.fields("flight").toString,
-          new Integer(json.fields("course").toString.toInt),
-                                    json.fields("aircraft").toString,
-                                    json.fields("callsign").toString,
-                                    json.fields("registration").toString,
-          new java.lang.Double(json.fields("lat").toString.toDouble),
-          new Integer(json.fields("speed").toString.toInt),
-          new Integer(json.fields("altitude").toString.toInt),
-                                    json.fields("destination").toString,
-          new java.lang.Double(json.fields("lon").toString.toDouble),
-          new java.lang.Long(json.fields("time").toString.toLong)))
-        case other => println("Unknown data structure: " + other)
-        }
-      }
+
+      val json_string: String = tuple.getString(0)
+      val result: JsValue = Json.parse(json_string)
+
+      collector.emit(new Values(
+          result("origin"),
+          result("flight"),
+          new Integer(result("course").toString.toInt),
+          result("aircraft"),
+          result("callsign"),
+          result("registration"),
+          new java.lang.Double(result("lat").toString.toDouble),
+          new Integer(result("speed").toString.toInt),
+          new Integer(result("altitude").toString.toInt),
+          result("destination"),
+          new java.lang.Double(result("lon").toString.toDouble),
+          new java.lang.Long(result("time").toString.toLong)))
+
     }
   }
 
