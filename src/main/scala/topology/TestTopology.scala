@@ -62,7 +62,7 @@ object TestTopology extends App {
     val zkHosts_1 = new ZkHosts(master_1 + ":2181")
     val zkHosts_2 = new ZkHosts(master_2 + ":2181")
     val colNames: util.List[String] = Seq("origin", "flight", "course", "aircraft", "callsign",
-      "registration", "lat", "lon", "altitude", "speed", "destination", "time").asJava
+      "registration", "lat", "speed", "altitude", "destination", "lon", "time").asJava
 
     //HiveBolt
     val mapper: JsonRecordHiveMapper  =
