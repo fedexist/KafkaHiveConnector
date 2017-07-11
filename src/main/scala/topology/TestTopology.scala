@@ -2,7 +2,7 @@ package topology
 
 import java.util
 
-import org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper
+import org.apache.storm.hive.bolt.mapper.{DelimitedRecordHiveMapper, JsonRecordHiveMapper}
 import org.apache.storm.hive.common.HiveOptions
 import org.apache.storm.hive.trident.{HiveStateFactory, HiveUpdater}
 import org.apache.storm.kafka._
@@ -45,19 +45,19 @@ object TestTopology extends App {
         case json: JsObject  => collector.emit(new Values(
                                     json.fields("origin").toString,
                                     json.fields("flight").toString,
-                                    json.fields("course").toString,
+                                    json.fields("course").convertTo[Int],
                                     json.fields("aircraft").toString,
                                     json.fields("callsign").toString,
                                     json.fields("registration").toString,
-                                    json.fields("lat").toString,
-                                    json.fields("speed").toString,
-                                    json.fields("altitude").toString,
+                                    json.fields("lat").convertTo[Double],
+                                    json.fields("speed").convertTo[Int],
+                                    json.fields("altitude").convertTo[Int],
                                     json.fields("destination").toString,
-                                    json.fields("lon").toString,
-                                    json.fields("time").toString))
+                                    json.fields("lon").convertTo[Double],
+                                    json.fields("time").convertTo[Long]))
         case other => println("Unknown data structure: " + other)
+        }
       }
-}
     }
   }
 
@@ -67,17 +67,17 @@ object TestTopology extends App {
     val master_2 = "master-2.localdomain"
     val metastore = "thrift://master-1.localdomain:9083,thrift://master-2.localdomain:9083"    
     val dbName = "data_stream"
-    val tblName = "air_traffic_test"
+    val tblName = "air_traffic_test2"
     val zkHosts_1 = new ZkHosts(master_1 + ":2181")
     val zkHosts_2 = new ZkHosts(master_2 + ":2181")
     val colNames: util.List[String] = Seq("origin", "flight", "course", "aircraft", "callsign",
       "registration", "lat", "lon", "altitude", "speed", "destination", "time").asJava
 
     //HiveBolt
-    val mapper: DelimitedRecordHiveMapper =
-      new DelimitedRecordHiveMapper()
+    val mapper: JsonRecordHiveMapper  =
+      new JsonRecordHiveMapper()
         .withColumnFields(new Fields(colNames))
-        .withTimeAsPartitionField("YYYY/MM/DD")
+        //.withTimeAsPartitionField("YYYY/MM/DD")
     val hiveOptions: HiveOptions =
       new HiveOptions(metastore, dbName, tblName, mapper)
         .withTxnsPerBatch(10)
