@@ -45,16 +45,16 @@ object TestTopology extends App {
         case json: JsObject  => collector.emit(new Values(
                                     json.fields("origin").toString,
                                     json.fields("flight").toString,
-                                    json.fields("course").convertTo[Int],
+          new Integer(json.fields("course").convertTo[Int]),
                                     json.fields("aircraft").toString,
                                     json.fields("callsign").toString,
                                     json.fields("registration").toString,
-                                    json.fields("lat").convertTo[Double],
-                                    json.fields("speed").convertTo[Int],
-                                    json.fields("altitude").convertTo[Int],
+          new java.lang.Double(json.fields("lat").convertTo[Double]),
+          new Integer(json.fields("speed").convertTo[Int]),
+          new Integer(json.fields("altitude").convertTo[Int]),
                                     json.fields("destination").toString,
-                                    json.fields("lon").convertTo[Double],
-                                    json.fields("time").convertTo[Long]))
+          new java.lang.Double(json.fields("lon").convertTo[Double]),
+          new java.lang.Long(json.fields("time").convertTo[Long])))
         case other => println("Unknown data structure: " + other)
         }
       }
