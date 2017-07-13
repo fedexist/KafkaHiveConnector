@@ -15,11 +15,53 @@ import org.apache.storm.spout.SchemeAsMultiScheme
 import org.apache.storm.trident.operation.BaseFunction
 import org.apache.storm.trident.operation.TridentCollector
 import org.apache.storm.trident.tuple.TridentTuple
-
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsValue, Json}
+
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 object TestTopology extends App {
+
+  object idLookup extends BaseFunction{
+
+    var idLookupMap = new mutable.HashMap[String,(Int, Long)] //with mutable.SynchronizedMap[String,(Int, Long)]
+    var lastId = 0
+
+    def isActive(tuple2: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple2._2._2 < 60000
+
+
+    def createOrGetId(_key : String, _time : Long) : Int = synchronized {
+
+      idLookupMap = idLookupMap filter isActive
+
+      val entry = idLookupMap.get(_key)
+
+      entry match {
+
+          case Some((id, time))  => idLookupMap+=((_key, (id, time))); id
+          case None => idLookupMap+=((_key, (lastId, _time))); lastId+=1; lastId
+
+      }
+
+    }
+
+    /**
+      * Takes a tuple adds the RDNS and emits a new tuple.
+      *
+      * @param tuple     an TridentTuple that contains fields in JSON format
+      * @param collector the TridentCollector
+      **/
+    override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
+
+      val key = tuple.getString(1)
+      val time = tuple.getLong(11)
+
+      collector.emit(new Values(createOrGetId(key, time)))
+
+    }
+
+  }
 
 
 
@@ -58,22 +100,52 @@ object TestTopology extends App {
     val master_2 = "master-2.localdomain"
     val metastore = "thrift://master-1.localdomain:9083,thrift://master-2.localdomain:9083"    
     val dbName = "data_stream"
-    val tblName = "air_traffic_test2"
+    val tblName = Seq("daily_table", "real_time_table", "active_table")
     val zkHosts_1 = new ZkHosts(master_1 + ":2181")
     val zkHosts_2 = new ZkHosts(master_2 + ":2181")
-    val colNames: util.List[String] = Seq("origin", "flight", "course", "aircraft", "callsign",
-      "registration", "lat", "speed", "altitude", "destination", "lon", "time").asJava
+    val json_fields = Seq("origin", "flight", "course", "aircraft", "callsign",
+      "registration", "lat", "speed", "altitude", "destination", "lon", "time")
+
+    val daily_columns = Seq("id", "flight", "aircraft", "callsign", "registration", "origin", "destination")
+    val realtime_columns = Seq("id", "lat", "lon", "altitude", "speed", "time", "course")
+    val active_columns = Seq("id", "origin", "destination", "lat", "lon", "time", "aircraft")
 
     //HiveBolt
-    val mapper: JsonRecordHiveMapper  =
+    val mapper_daily: JsonRecordHiveMapper  =
       new JsonRecordHiveMapper()
-        .withColumnFields(new Fields(colNames))
-        //.withTimeAsPartitionField("YYYY/MM/DD")
-    val hiveOptions: HiveOptions =
-      new HiveOptions(metastore, dbName, tblName, mapper)
+        .withColumnFields(new Fields(daily_columns.asJava))
+        .withTimeAsPartitionField("YYYY/MM/DD")
+    val hiveOptions_daily: HiveOptions =
+      new HiveOptions(metastore, dbName, tblName.head, mapper_daily)
         .withTxnsPerBatch(10)
         .withBatchSize(1000)
         .withIdleTimeout(10)
+    val factory_daily: StateFactory = new HiveStateFactory().withOptions(hiveOptions_daily)
+
+
+    val mapper_realtime: JsonRecordHiveMapper  =
+      new JsonRecordHiveMapper()
+        .withColumnFields(new Fields(realtime_columns.asJava))
+        .withTimeAsPartitionField("YYYY/MM/DD")
+    val hiveOptions_realtime: HiveOptions =
+      new HiveOptions(metastore, dbName, tblName(1), mapper_realtime)
+        .withTxnsPerBatch(10)
+        .withBatchSize(1000)
+        .withIdleTimeout(10)
+    val factory_realtime: StateFactory = new HiveStateFactory().withOptions(hiveOptions_realtime)
+
+
+    val mapper_active: JsonRecordHiveMapper  =
+      new JsonRecordHiveMapper()
+        .withColumnFields(new Fields(active_columns.asJava))
+        .withTimeAsPartitionField("YYYY/MM/DD")
+    val hiveOptions_active: HiveOptions =
+      new HiveOptions(metastore, dbName, tblName(2), mapper_active)
+        .withTxnsPerBatch(10)
+        .withBatchSize(1000)
+        .withIdleTimeout(10)
+    val factory_active: StateFactory = new HiveStateFactory().withOptions(hiveOptions_active)
+
 
     //KafkaSpout
     val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic")
@@ -82,11 +154,16 @@ object TestTopology extends App {
 
     //Topology
     val topology: TridentTopology = new TridentTopology
-    val factory: StateFactory = new HiveStateFactory().withOptions(hiveOptions)
-    val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
-                                  .each(new Fields("str"), new ParseJSON , new Fields(colNames))
 
-    stream.partitionPersist(factory, new Fields(colNames), new HiveUpdater(), new Fields()).parallelismHint(8)
+
+    val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
+                                  .each(new Fields("str"), new ParseJSON , new Fields(json_fields.asJava))
+                                  .each(new Fields(json_fields.asJava), idLookup, new Fields("id"))
+
+    stream.partitionPersist(factory_daily, new Fields(daily_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
+    stream.partitionPersist(factory_realtime, new Fields(realtime_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
+    stream.partitionPersist(factory_active, new Fields(active_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
+
 
     //Storm Config
     val config = new Config

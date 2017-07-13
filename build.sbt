@@ -12,6 +12,8 @@ libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.10.0.2.5.5.0-157" 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.2"
 libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.7.3.2.5.5.0-157" exclude("log4j", "log4j") exclude("org.apache.zookeeper", "zookeper") exclude("org.slf4j", "slf4j-log4j12")
 libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.7.3.2.5.5.0-157" exclude("log4j", "log4j") exclude("org.apache.zookeeper", "zookeper") exclude("org.slf4j", "slf4j-log4j12")
+libraryDependencies += "org.joda" % "joda-convert" % "1.8.2"
+
 
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", "services", "org.apache.hadoop.fs.FileSystem") => MergeStrategy.filterDistinctLines
