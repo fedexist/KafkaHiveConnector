@@ -78,16 +78,16 @@ object TestTopology extends App {
       val result: JsValue = Json.parse(json_string)
 
       collector.emit(new Values(
-          result("origin"),
-          result("flight"),
+          result("origin").toString,
+          result("flight").toString,
           new Integer(result("course").toString.toInt),
-          result("aircraft"),
-          result("callsign"),
-          result("registration"),
+          result("aircraft").toString,
+          result("callsign").toString,
+          result("registration").toString,
           new java.lang.Double(result("lat").toString.toDouble),
           new Integer(result("speed").toString.toInt),
           new Integer(result("altitude").toString.toInt),
-          result("destination"),
+          result("destination").toString,
           new java.lang.Double(result("lon").toString.toDouble),
           new java.lang.Long(result("time").toString.toLong)))
 
