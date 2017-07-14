@@ -28,7 +28,7 @@ object TestTopology extends App {
     var idLookupMap = new mutable.HashMap[String,(Int, Long)] //with mutable.SynchronizedMap[String,(Int, Long)]
     var lastId = 0
 
-    def isActive(tuple2: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple2._2._2 < 60000
+    def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60000
 
 
     def createOrGetId(_key : String, _time : Long) : Int = synchronized {
@@ -57,7 +57,7 @@ object TestTopology extends App {
       val key = tuple.getString(1)
       val time = tuple.getLong(11)
 
-      collector.emit(new Values(createOrGetId(key, time)))
+      collector.emit(new Values(new Integer(createOrGetId(key, time))))
 
     }
 
@@ -157,8 +157,8 @@ object TestTopology extends App {
 
 
     val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
-                                  .each(new Fields("str"), new ParseJSON , new Fields(json_fields.asJava))
-                                  .each(new Fields(json_fields.asJava), idLookup, new Fields("id"))
+      .each(new Fields("str"), new ParseJSON , new Fields(json_fields.asJava))
+      .each(new Fields(json_fields.asJava), idLookup, new Fields("id"))
 
     stream.partitionPersist(factory_daily, new Fields(daily_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
     stream.partitionPersist(factory_realtime, new Fields(realtime_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
