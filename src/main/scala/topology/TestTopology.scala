@@ -19,13 +19,15 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsValue, Json}
 
 import scala.collection.JavaConverters._
+import scala.collection.concurrent
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 
 object TestTopology extends App {
 
   object idLookup extends BaseFunction{
 
-    var idLookupMap = new mutable.HashMap[String,(Int, Long)] //with mutable.SynchronizedMap[String,(Int, Long)]
+    var idLookupMap = new TrieMap[String,(Int, Long)]
     var lastId = 0
 
     def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60000
@@ -39,7 +41,7 @@ object TestTopology extends App {
 
       entry match {
 
-          case Some((id, time))  => idLookupMap+=((_key, (id, time))); id
+          case Some((id, time))  => idLookupMap+=((_key, (id, _time))); id
           case None => idLookupMap+=((_key, (lastId, _time))); lastId+=1; lastId
 
       }
@@ -114,7 +116,7 @@ object TestTopology extends App {
     val mapper_daily: JsonRecordHiveMapper  =
       new JsonRecordHiveMapper()
         .withColumnFields(new Fields(daily_columns.asJava))
-        .withTimeAsPartitionField("YYYY/MM/DD")
+        .withTimeAsPartitionField("YYYY-MM-DD'T'HH")
     val hiveOptions_daily: HiveOptions =
       new HiveOptions(metastore, dbName, tblName.head, mapper_daily)
         .withTxnsPerBatch(10)
@@ -126,7 +128,7 @@ object TestTopology extends App {
     val mapper_realtime: JsonRecordHiveMapper  =
       new JsonRecordHiveMapper()
         .withColumnFields(new Fields(realtime_columns.asJava))
-        .withTimeAsPartitionField("YYYY/MM/DD")
+        .withTimeAsPartitionField("YYYY-MM-DD'T'HH")
     val hiveOptions_realtime: HiveOptions =
       new HiveOptions(metastore, dbName, tblName(1), mapper_realtime)
         .withTxnsPerBatch(10)
@@ -138,7 +140,7 @@ object TestTopology extends App {
     val mapper_active: JsonRecordHiveMapper  =
       new JsonRecordHiveMapper()
         .withColumnFields(new Fields(active_columns.asJava))
-        .withTimeAsPartitionField("YYYY/MM/DD")
+        .withTimeAsPartitionField("YYYY-MM-DD'T'HH")
     val hiveOptions_active: HiveOptions =
       new HiveOptions(metastore, dbName, tblName(2), mapper_active)
         .withTxnsPerBatch(10)
