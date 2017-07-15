@@ -33,19 +33,21 @@ object TestTopology extends App {
     def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60000
 
 
-    def createOrGetId(_key : String, _time : Long) : Int = synchronized {
+    def createOrGetId(_key : String, _time : Long) : Int = {
 
-      idLookupMap = idLookupMap filter isActive
+      this.synchronized {
 
-      val entry = idLookupMap.get(_key)
+        idLookupMap = idLookupMap filterNot isActive
 
-      entry match {
+        val entry = idLookupMap.get(_key)
 
-          case Some((id, time))  => idLookupMap+=((_key, (id, _time))); id
-          case None => idLookupMap+=((_key, (lastId, _time))); lastId+=1; lastId
+        entry match {
 
+            case Some((id, time))  => idLookupMap+=((_key, (id, _time))); id
+            case None => idLookupMap+=((_key, (lastId, _time))); lastId+=1; lastId - 1
+
+        }
       }
-
     }
 
     /**
