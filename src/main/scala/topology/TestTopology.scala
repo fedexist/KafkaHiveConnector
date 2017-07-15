@@ -32,10 +32,7 @@ object TestTopology extends App {
 
     def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60000
 
-
     def createOrGetId(_key : String, _time : Long) : Int = {
-
-      this.synchronized {
 
         idLookupMap = idLookupMap filterNot isActive
 
@@ -47,7 +44,7 @@ object TestTopology extends App {
             case None => idLookupMap+=((_key, (lastId, _time))); lastId+=1; lastId - 1
 
         }
-      }
+
     }
 
     /**
