@@ -133,8 +133,8 @@ object MongoDBTopology extends App {
       val zkHosts_2 = new ZkHosts(master_2 + ":2181")
 
       //MongoDB
-      val mongoURL = "mongodb://10.0.0.80:30003"
       val dbName = "DataStream"
+      val mongoURL = "mongodb://10.0.0.80:30003/" + dbName
       val active_collection = "activeCollection"
       val history_collection = "history"
       val json_fields = Seq("origin", "flight", "course", "aircraft", "callsign",
