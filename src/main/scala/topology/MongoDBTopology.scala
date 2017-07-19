@@ -1,6 +1,7 @@
 package topology
 
 import clients.{MongoStateFactory, MongoStateUpdater, Options}
+import org.bson.Document
 
 import scala.util.Random
 
@@ -88,6 +89,57 @@ object MongoDBTopology extends App {
 
       }
   }
+
+    class SetOnInsertActive extends BaseFunction {
+
+      override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
+
+        //Set
+        val SetMap : util.HashMap[String, AnyRef] = null
+        SetMap.put("lat", tuple.getLongByField("lat") )
+        SetMap.put("lon", tuple.getLongByField("lon"))
+        SetMap.put("speed", tuple.getIntegerByField("speed"))
+        SetMap.put("course", tuple.getIntegerByField("course"))
+        SetMap.put("formatted_date", tuple.getStringByField("formatted_date"))
+
+        //SetOnInsert
+        val SetOnInsertMap : util.HashMap[String, AnyRef] = null
+        SetOnInsertMap.put("id", tuple.getIntegerByField("id"))
+        SetOnInsertMap.put("origin", tuple.getStringByField("origin"))
+        SetOnInsertMap.put("destination", tuple.getStringByField("destination"))
+        SetOnInsertMap.put("aircraft", tuple.getStringByField("aircraft"))
+
+        val set : Document = new Document(SetMap)
+        val setonInsert : Document = new Document(SetOnInsertMap)
+
+        collector.emit(new Values(set, setonInsert))
+
+      }
+    }
+
+  class SetOnInsertHistory extends BaseFunction {
+
+    override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
+
+      val SetOnInsertMap : util.HashMap[String, AnyRef] = null
+      SetOnInsertMap.put("id", tuple.getIntegerByField("id"))
+      SetOnInsertMap.put("origin", tuple.getStringByField("origin"))
+      SetOnInsertMap.put("destination", tuple.getStringByField("destination"))
+      SetOnInsertMap.put("aircraft", tuple.getStringByField("aircraft"))
+      SetOnInsertMap.put("flight", tuple.getIntegerByField("flight"))
+      SetOnInsertMap.put("registration", tuple.getStringByField("registration"))
+      SetOnInsertMap.put("callsign", tuple.getStringByField("callsign"))
+      SetOnInsertMap.put("date_depart", tuple.getStringByField("date_depart"))
+
+
+      val set : Document = new Document("date_arrival", tuple.getStringByField("date_arrival"))
+      val setonInsert : Document = new Document(SetOnInsertMap)
+
+      collector.emit(new Values(set, setonInsert))
+
+    }
+  }
+
 
 
 
@@ -184,9 +236,12 @@ object MongoDBTopology extends App {
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
 
 
-      stream.partitionPersist(active_factory, new Fields(active_columns.asJava ), new MongoStateUpdater(), new Fields()).parallelismHint(8)
+      stream.each(new Fields(active_columns.asJava), new SetOnInsertActive, new Fields("_id", "$set", "$setOnInsert"))
+            .partitionPersist(active_factory, new Fields(active_columns.asJava ), new MongoStateUpdater(), new Fields()).parallelismHint(8)
+
       stream.each(new Fields(), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
-        .partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(8)
+            .each(new Fields(history_columns.asJava), new SetOnInsertHistory() , new Fields("$set", "$setOnInsert"))
+            .partitionPersist(history_factory, new Fields("_id", "$set", "$setOnInsert"), new MongoStateUpdater(), new Fields()).parallelismHint(8)
 
       //Storm Config
       val config = new Config
