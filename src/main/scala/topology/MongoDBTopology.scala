@@ -236,7 +236,7 @@ object MongoDBTopology extends App {
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
 
 
-      stream.each(new Fields(active_columns.asJava), new SetOnInsertActive, new Fields("_id", "$set", "$setOnInsert"))
+      stream.each(new Fields(active_columns.asJava), new SetOnInsertActive, new Fields("$set", "$setOnInsert"))
             .partitionPersist(active_factory, new Fields(active_columns.asJava ), new MongoStateUpdater(), new Fields()).parallelismHint(8)
 
       stream.each(new Fields(), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
