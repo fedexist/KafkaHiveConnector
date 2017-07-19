@@ -58,19 +58,25 @@ class MongoState(_map : util.Map[_,_], _options: Options) extends State {
   }
 
   def updateState (tuples: util.List[TridentTuple], collector: TridentCollector): Unit = {
-    val documents = Lists.newArrayList[Document]
+    //val documents = Lists.newArrayList[Document]
 
     for (tuple <- tuples) {
       val document = options.mapper.toDocument (tuple)
-      documents.add(document)
+      //documents.add(document)
+
+      val filter : Document = new Document().append("_id", document.getInteger("_id"))
+
+      try
+        mongoClient.update(filter, document , upsert = true, many = false)
+      catch {
+        case e: Exception => LOG.warn ("Batch write failed but some requests might have succeeded. Triggering replay.", e)
+          throw new FailedException (e)
+      }
+
+
     }
 
-    try
-      mongoClient.insert(documents, ordered = true)
-    catch {
-      case e: Exception => LOG.warn ("Batch write failed but some requests might have succeeded. Triggering replay.", e)
-      throw new FailedException (e)
-    }
+
   }
 
 }
