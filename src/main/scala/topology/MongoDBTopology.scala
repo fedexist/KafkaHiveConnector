@@ -107,16 +107,16 @@ object MongoDBTopology extends App {
 
         try{
           collector.emit(new Values(
-            result("origin").toString,
-            result("flight").toString,
+            result("origin").toString.stripPrefix("\"").stripSuffix("\""),
+            result("flight").toString.stripPrefix("\"").stripSuffix("\""),
             new Integer(result("course").toString.toInt),
-            result("aircraft").toString,
-            result("callsign").toString,
-            result("registration").toString,
+            result("aircraft").toString.stripPrefix("\"").stripSuffix("\""),
+            result("callsign").toString.stripPrefix("\"").stripSuffix("\""),
+            result("registration").toString.stripPrefix("\"").stripSuffix("\""),
             new java.lang.Double(result("lat").toString.toDouble),
             new Integer(result("speed").toString.toInt),
             new Integer(result("altitude").toString.toInt),
-            result("destination").toString,
+            result("destination").toString.stripPrefix("\"").stripSuffix("\""),
             new java.lang.Double(result("lon").toString.toDouble),
             new java.lang.Long(result("time").toString.toLong)))
         } catch {
