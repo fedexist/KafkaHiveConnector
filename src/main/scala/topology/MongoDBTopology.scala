@@ -77,9 +77,20 @@ object MongoDBTopology extends App {
 
     }
 
+    class DepartureArrivalDates extends BaseFunction {
+
+      override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
+
+        collector.emit(new Values(DateTime.now(DateTimeZone.UTC).toString("YYYY-MM-DD'T'hh:mm:ss"),
+                        DateTime.now(DateTimeZone.UTC).toString("YYYY-MM-DD'T'hh:mm:ss")))
+
+      }
+  }
 
 
-    class ParseJSON extends BaseFunction {
+
+
+  class ParseJSON extends BaseFunction {
       /**
         * Takes a tuple adds the RDNS and emits a new tuple.
         *
@@ -167,12 +178,13 @@ object MongoDBTopology extends App {
 
       val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
         .each(new Fields("str"), new ParseJSON , new Fields((json_fields :+ "time").asJava))
-        .each(new Fields("time"), new DateCreation, new Fields("formatted_date"))
+        .each(new Fields(), new DateCreation, new Fields("formatted_date"))
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("id"))
 
 
       stream.partitionPersist(active_factory, new Fields(active_columns.asJava ), new MongoStateUpdater(), new Fields()).parallelismHint(8)
-      stream.partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(8)
+      stream.each(new Fields(), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
+        .partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(8)
 
       //Storm Config
       val config = new Config

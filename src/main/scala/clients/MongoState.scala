@@ -66,7 +66,7 @@ class MongoState(_map : util.Map[_,_], _options: Options) extends State {
     }
 
     try
-      mongoClient.insert (documents, ordered = true)
+      mongoClient.insert(documents, ordered = true)
     catch {
       case e: Exception => LOG.warn ("Batch write failed but some requests might have succeeded. Triggering replay.", e)
       throw new FailedException (e)
