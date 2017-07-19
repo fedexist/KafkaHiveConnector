@@ -5,7 +5,7 @@ import clients.{MongoStateFactory, MongoStateUpdater, Options}
 /**
   * Created by Stefano on 19/07/2017.
   */
-object MongoDBTopology {
+object MongoDBTopology extends App {
 
   import org.apache.storm.mongodb.common.mapper.SimpleMongoMapper
   import java.util
@@ -26,9 +26,6 @@ object MongoDBTopology {
   import scala.collection.concurrent
   import scala.collection.concurrent.TrieMap
   import scala.collection.mutable
-
-  object TestTopology extends App {
-
 
     object idLookup extends BaseFunction{
 
@@ -193,8 +190,6 @@ object MongoDBTopology {
       }
 
     }
-
-  }
 
 
 }
