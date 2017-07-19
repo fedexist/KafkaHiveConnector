@@ -2,7 +2,7 @@ package topology
 
 import java.util
 
-import org.apache.storm.hive.bolt.mapper.{DelimitedRecordHiveMapper, JsonRecordHiveMapper}
+import org.apache.storm.hive.bolt.mapper.DelimitedRecordHiveMapper
 import org.apache.storm.hive.common.HiveOptions
 import org.apache.storm.hive.trident.{HiveStateFactory, HiveUpdater}
 import org.apache.storm.kafka._
@@ -10,7 +10,7 @@ import org.apache.storm.{Config, StormSubmitter, trident}
 import org.apache.storm.trident.{TridentState, TridentTopology}
 import org.apache.storm.trident.state.StateFactory
 import org.apache.storm.tuple.{Fields, Values}
-import org.apache.storm.kafka.trident.{OpaqueTridentKafkaSpout, TridentKafkaConfig}
+import org.apache.storm.kafka.trident.{TransactionalTridentKafkaSpout, TridentKafkaConfig}
 import org.apache.storm.spout.SchemeAsMultiScheme
 import org.apache.storm.trident.operation.BaseFunction
 import org.apache.storm.trident.operation.TridentCollector
@@ -78,6 +78,8 @@ object TestTopology extends App {
       val json_string: String = tuple.getString(0)
       val result: JsValue = Json.parse(json_string)
 
+
+      try{
       collector.emit(new Values(
           result("origin").toString,
           result("flight").toString,
@@ -91,7 +93,11 @@ object TestTopology extends App {
           result("destination").toString,
           new java.lang.Double(result("lon").toString.toDouble),
           new java.lang.Long(result("time").toString.toLong)))
+      } catch {
 
+        case e: Exception => println("Error parsing: " + json_string); println(e)
+
+      }
     }
   }
 
@@ -99,7 +105,7 @@ object TestTopology extends App {
 
     val master_1 = "master-1.localdomain"
     val master_2 = "master-2.localdomain"
-    val metastore = "thrift://master-1.localdomain:9083,thrift://master-2.localdomain:9083"    
+    val metastore = "thrift://master-1.localdomain:9083"
     val dbName = "data_stream"
     val tblName = Seq("daily_table", "real_time_table", "active_table")
     val zkHosts_1 = new ZkHosts(master_1 + ":2181")
@@ -112,8 +118,8 @@ object TestTopology extends App {
     val active_columns = Seq("id", "origin", "destination", "lat", "lon", "time", "aircraft")
 
     //HiveBolt
-    val mapper_daily: JsonRecordHiveMapper  =
-      new JsonRecordHiveMapper()
+    val mapper_daily: DelimitedRecordHiveMapper  =
+      new DelimitedRecordHiveMapper()
         .withColumnFields(new Fields(daily_columns.asJava))
         .withTimeAsPartitionField("YYYY-MM-DD'T'HH")
     val hiveOptions_daily: HiveOptions =
@@ -124,8 +130,8 @@ object TestTopology extends App {
     val factory_daily: StateFactory = new HiveStateFactory().withOptions(hiveOptions_daily)
 
 
-    val mapper_realtime: JsonRecordHiveMapper  =
-      new JsonRecordHiveMapper()
+    val mapper_realtime: DelimitedRecordHiveMapper  =
+      new DelimitedRecordHiveMapper()
         .withColumnFields(new Fields(realtime_columns.asJava))
         .withTimeAsPartitionField("YYYY-MM-DD'T'HH")
     val hiveOptions_realtime: HiveOptions =
@@ -136,8 +142,8 @@ object TestTopology extends App {
     val factory_realtime: StateFactory = new HiveStateFactory().withOptions(hiveOptions_realtime)
 
 
-    val mapper_active: JsonRecordHiveMapper  =
-      new JsonRecordHiveMapper()
+    val mapper_active: DelimitedRecordHiveMapper  =
+      new DelimitedRecordHiveMapper()
         .withColumnFields(new Fields(active_columns.asJava))
         .withTimeAsPartitionField("YYYY-MM-DD'T'HH")
     val hiveOptions_active: HiveOptions =
@@ -151,7 +157,8 @@ object TestTopology extends App {
     //KafkaSpout
     val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic")
     spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme())
-    val kafkaSpout = new OpaqueTridentKafkaSpout(spoutConf)
+    val kafkaSpout = new TransactionalTridentKafkaSpout(spoutConf)
+
 
     //Topology
     val topology: TridentTopology = new TridentTopology
@@ -162,9 +169,8 @@ object TestTopology extends App {
       .each(new Fields(json_fields.asJava), idLookup, new Fields("id"))
 
     stream.partitionPersist(factory_daily, new Fields(daily_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
-    stream.partitionPersist(factory_realtime, new Fields(realtime_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
+    val state = stream.partitionPersist(factory_realtime, new Fields(realtime_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
     stream.partitionPersist(factory_active, new Fields(active_columns.asJava), new HiveUpdater(), new Fields()).parallelismHint(8)
-
 
     //Storm Config
     val config = new Config
