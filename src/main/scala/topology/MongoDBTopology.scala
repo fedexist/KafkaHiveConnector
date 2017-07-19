@@ -2,6 +2,8 @@ package topology
 
 import clients.{MongoStateFactory, MongoStateUpdater, Options}
 
+import scala.util.Random
+
 /**
   * Created by Stefano on 19/07/2017.
   */
@@ -176,7 +178,7 @@ object MongoDBTopology extends App {
       val topology: TridentTopology = new TridentTopology
 
 
-      val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
+      val stream: trident.Stream = topology.newStream("jsonEmitter" + new Random().nextInt(), kafkaSpout)
         .each(new Fields("str"), new ParseJSON , new Fields((json_fields :+ "time").asJava))
         .each(new Fields(), new DateCreation, new Fields("formatted_date"))
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("id"))
