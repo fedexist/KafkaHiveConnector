@@ -1,6 +1,6 @@
 package topology
 
-import clients.{MongoStateFactory, MongoStateUpdater, Options}
+import clients.{MongoSetOnInsertMapper, MongoStateFactory, MongoStateUpdater, Options}
 import org.bson.Document
 
 import scala.util.Random
@@ -95,7 +95,7 @@ object MongoDBTopology extends App {
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
         //Set
-        val SetMap : util.HashMap[String, AnyRef] = null
+        val SetMap : util.HashMap[String, AnyRef] = new util.HashMap()
         SetMap.put("lat", tuple.getDoubleByField("lat") )
         SetMap.put("lon", tuple.getDoubleByField("lon"))
         SetMap.put("speed", tuple.getIntegerByField("speed"))
@@ -103,7 +103,7 @@ object MongoDBTopology extends App {
         SetMap.put("formatted_date", tuple.getStringByField("formatted_date"))
 
         //SetOnInsert
-        val SetOnInsertMap : util.HashMap[String, AnyRef] = null
+        val SetOnInsertMap : util.HashMap[String, AnyRef] = new util.HashMap()
         SetOnInsertMap.put("id", tuple.getIntegerByField("id"))
         SetOnInsertMap.put("origin", tuple.getStringByField("origin"))
         SetOnInsertMap.put("destination", tuple.getStringByField("destination"))
@@ -121,7 +121,7 @@ object MongoDBTopology extends App {
 
     override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
-      val SetOnInsertMap : util.HashMap[String, AnyRef] = null
+      val SetOnInsertMap : util.HashMap[String, AnyRef] = new util.HashMap()
       SetOnInsertMap.put("id", tuple.getIntegerByField("id"))
       SetOnInsertMap.put("origin", tuple.getStringByField("origin"))
       SetOnInsertMap.put("destination", tuple.getStringByField("destination"))
@@ -199,11 +199,13 @@ object MongoDBTopology extends App {
       val active_columns = Seq("_id", "origin", "destination", "lat", "lon", "formatted_date", "aircraft", "speed", "course")
 
       //MongoDBConnector
-      val active_mapper = new SimpleMongoMapper().withFields("_id", "origin", "destination", "lat", "lon",
-        "formatted_date", "aircraft", "speed", "course")
+      val active_mapper = new MongoSetOnInsertMapper(
+        List("lat", "lon", "speed", "course", "formatted_date" ),
+        List("_id", "origin", "destination", "aircraft"))
 
-      val history_mapper = new SimpleMongoMapper().withFields("_id", "origin", "flight", "course", "aircraft", "callsign",
-        "registration",  "destination", "date_depart", "date_arrival")
+      val history_mapper = new MongoSetOnInsertMapper(
+        List("origin", "destination", "aircraft", "flight", "registration", "callsign",  "date_depart"),
+        List("_id", "date_arrival"))
 
       val active_options = new Options()
         .withUrl(mongoURL)
@@ -236,12 +238,12 @@ object MongoDBTopology extends App {
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
 
 
-      stream.each(new Fields(active_columns.asJava), new SetOnInsertActive, new Fields("$set", "$setOnInsert"))
-            .partitionPersist(active_factory, new Fields("_id", "$set", "$setOnInsert"), new MongoStateUpdater(), new Fields()).parallelismHint(8)
+      stream//.each(new Fields(active_columns.asJava), new SetOnInsertActive, new Fields("$set", "$setOnInsert"))
+            .partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(8)
 
       stream.each(new Fields(), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
-            .each(new Fields(history_columns.asJava), new SetOnInsertHistory() , new Fields("$set", "$setOnInsert"))
-            .partitionPersist(history_factory, new Fields("_id", "$set", "$setOnInsert"), new MongoStateUpdater(), new Fields()).parallelismHint(8)
+            //.each(new Fields(history_columns.asJava), new SetOnInsertHistory() , new Fields("$set", "$setOnInsert"))
+            .partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(8)
 
       //Storm Config
       val config = new Config

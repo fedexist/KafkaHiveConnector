@@ -78,7 +78,6 @@ object TestTopology extends App {
       val json_string: String = tuple.getString(0)
       val result: JsValue = Json.parse(json_string)
 
-
       try{
       collector.emit(new Values(
           result("origin").toString,

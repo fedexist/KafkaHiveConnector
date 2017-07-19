@@ -64,8 +64,7 @@ class MongoState(_map : util.Map[_,_], _options: Options) extends State {
       val document = options.mapper.toDocument (tuple)
       //documents.add(document)
 
-      val filter : Document = new Document().append("_id", document.getInteger("_id"))
-      document.remove("_id")
+      val filter : Document = new Document().append("_id", document.get("$setOnInsert").asInstanceOf[Document].getInteger("_id"))
 
       try
         mongoClient.update(filter, document , upsert = true, many = false)
