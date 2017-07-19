@@ -96,8 +96,8 @@ object MongoDBTopology extends App {
 
         //Set
         val SetMap : util.HashMap[String, AnyRef] = null
-        SetMap.put("lat", tuple.getLongByField("lat") )
-        SetMap.put("lon", tuple.getLongByField("lon"))
+        SetMap.put("lat", tuple.getDoubleByField("lat") )
+        SetMap.put("lon", tuple.getDoubleByField("lon"))
         SetMap.put("speed", tuple.getIntegerByField("speed"))
         SetMap.put("course", tuple.getIntegerByField("course"))
         SetMap.put("formatted_date", tuple.getStringByField("formatted_date"))
