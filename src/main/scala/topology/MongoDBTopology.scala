@@ -142,15 +142,15 @@ object MongoDBTopology extends App {
       val json_fields = Seq("origin", "flight", "course", "aircraft", "callsign",
         "registration", "lat", "speed", "altitude", "destination", "lon") //time
 
-      val history_columns = Seq("id", "origin", "flight", "course", "aircraft", "callsign",
+      val history_columns = Seq("_id", "origin", "flight", "course", "aircraft", "callsign",
         "registration",  "destination", "date_depart", "date_arrival")
-      val active_columns = Seq("id", "origin", "destination", "lat", "lon", "formatted_date", "aircraft", "speed", "course")
+      val active_columns = Seq("_id", "origin", "destination", "lat", "lon", "formatted_date", "aircraft", "speed", "course")
 
       //MongoDBConnector
-      val active_mapper = new SimpleMongoMapper().withFields("id", "origin", "destination", "lat", "lon",
+      val active_mapper = new SimpleMongoMapper().withFields("_id", "origin", "destination", "lat", "lon",
         "formatted_date", "aircraft", "speed", "course")
 
-      val history_mapper = new SimpleMongoMapper().withFields("id", "origin", "flight", "course", "aircraft", "callsign",
+      val history_mapper = new SimpleMongoMapper().withFields("_id", "origin", "flight", "course", "aircraft", "callsign",
         "registration",  "destination", "date_depart", "date_arrival")
 
       val active_options = new Options()
@@ -181,7 +181,7 @@ object MongoDBTopology extends App {
       val stream: trident.Stream = topology.newStream("jsonEmitter" + new Random().nextInt(), kafkaSpout)
         .each(new Fields("str"), new ParseJSON , new Fields((json_fields :+ "time").asJava))
         .each(new Fields(), new DateCreation, new Fields("formatted_date"))
-        .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("id"))
+        .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
 
 
       stream.partitionPersist(active_factory, new Fields(active_columns.asJava ), new MongoStateUpdater(), new Fields()).parallelismHint(8)
