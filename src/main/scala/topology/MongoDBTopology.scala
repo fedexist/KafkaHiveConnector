@@ -223,7 +223,7 @@ object MongoDBTopology extends App {
 
 
       //KafkaSpout
-      val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic")
+      val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic2")
       spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme())
       val kafkaSpout = new TransactionalTridentKafkaSpout(spoutConf)
 
