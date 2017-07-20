@@ -86,13 +86,16 @@ class MongoDBClient(val url: String, val collectionName: String){
     val options = new UpdateOptions
     val bulkoptions = new BulkWriteOptions
     val operations = new util.ArrayList[WriteModel[Document]]
-    if (upsert) options.upsert(true)
-    for((doc, filter) <- documents_filters){
 
+    val listIterator = documents_filters.listIterator()
+
+    if (upsert) options.upsert(true)
+    while(listIterator.hasNext ){
+      val current = listIterator.next()
       if(!many)
-        operations.add(new UpdateOneModel[Document](filter, doc, options))
+        operations.add(new UpdateOneModel[Document](current._2, current._1, options))
       else
-        operations.add(new UpdateManyModel[Document](filter, doc, options))
+        operations.add(new UpdateManyModel[Document](current._2, current._1, options))
 
     }
     collection.bulkWrite(operations, bulkoptions)

@@ -5,7 +5,6 @@ import java.{lang, util}
 import org.apache.storm.topology.FailedException
 
 import scala.collection.JavaConversions._
-import com.google.common.collect.Lists
 import com.mongodb.client.model.UpdateOneModel
 import org.apache.commons.lang.Validate
 import org.apache.storm.trident.operation.TridentCollector
@@ -61,7 +60,7 @@ class MongoState(_map : util.Map[_,_], _options: Options) extends State {
 
   def updateState (tuples: util.List[TridentTuple], collector: TridentCollector): Unit = {
 
-    val documents = Lists.newArrayList[(Document, Bson)]
+    val documents = new util.ArrayList[(Document, Bson)]
 
     for (tuple <- tuples) {
 
