@@ -1,5 +1,7 @@
 package topology
 
+import java.text.SimpleDateFormat
+
 import clients.{MongoSetOnInsertMapper, MongoStateFactory, MongoStateUpdater, Options}
 import org.bson.Document
 
@@ -73,7 +75,7 @@ object MongoDBTopology extends App {
 
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
-        collector.emit(new Values(DateTime.now(DateTimeZone.UTC)))
+        collector.emit(new Values(new util.Date()))
 
       }
 
@@ -84,8 +86,9 @@ object MongoDBTopology extends App {
 
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
-        collector.emit(new Values(DateTime.now(DateTimeZone.UTC)/*.toString("YYYY-MM-DD'T'hh:mm:ss")*/,
-                        DateTime.now(DateTimeZone.UTC)/*.toString("YYYY-MM-DD'T'hh:mm:ss")*/))
+
+        collector.emit(new Values(new util.Date()/*.toString("YYYY-MM-DD'T'hh:mm:ss")*/,
+          new util.Date()/*.toString("YYYY-MM-DD'T'hh:mm:ss")*/))
 
       }
   }
