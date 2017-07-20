@@ -199,13 +199,13 @@ object MongoDBTopology extends App {
       val active_columns = Seq("_id", "origin", "destination", "lat", "lon", "formatted_date", "aircraft", "speed", "course")
 
       //MongoDBConnector
-      val active_mapper = new MongoSetOnInsertMapper(
-        List("lat", "lon", "speed", "course", "formatted_date" ),
-        List("_id", "origin", "destination", "aircraft"))
+      val active_mapper = new MongoSetOnInsertMapper()
+          .withSetFields(List("lat", "lon", "speed", "course", "formatted_date" ))
+          .withSetOnInsertFields(List("_id", "origin", "destination", "aircraft"))
 
-      val history_mapper = new MongoSetOnInsertMapper(
-        List("origin", "destination", "aircraft", "flight", "registration", "callsign",  "date_depart"),
-        List("_id", "date_arrival"))
+      val history_mapper = new MongoSetOnInsertMapper()
+        .withSetFields(List("origin", "destination", "aircraft", "flight", "registration", "callsign",  "date_depart"))
+        .withSetOnInsertFields(List("date_arrival"))
 
       val active_options = new Options()
         .withUrl(mongoURL)
