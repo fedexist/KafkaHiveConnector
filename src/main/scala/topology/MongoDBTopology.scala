@@ -73,7 +73,7 @@ object MongoDBTopology extends App {
 
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
-        collector.emit(new Values(DateTime.now(DateTimeZone.UTC).toString("YYYY-MM-DD'T'hh:mm:ss")))
+        collector.emit(new Values(DateTime.now(DateTimeZone.UTC)))
 
       }
 
@@ -84,8 +84,8 @@ object MongoDBTopology extends App {
 
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
-        collector.emit(new Values(DateTime.now(DateTimeZone.UTC).toString("YYYY-MM-DD'T'hh:mm:ss"),
-                        DateTime.now(DateTimeZone.UTC).toString("YYYY-MM-DD'T'hh:mm:ss")))
+        collector.emit(new Values(DateTime.now(DateTimeZone.UTC)/*.toString("YYYY-MM-DD'T'hh:mm:ss")*/,
+                        DateTime.now(DateTimeZone.UTC)/*.toString("YYYY-MM-DD'T'hh:mm:ss")*/))
 
       }
   }
