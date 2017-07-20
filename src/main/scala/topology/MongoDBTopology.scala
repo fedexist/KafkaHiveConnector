@@ -197,7 +197,7 @@ object MongoDBTopology extends App {
       val json_fields = Seq("origin", "flight", "course", "aircraft", "callsign",
         "registration", "lat", "speed", "altitude", "destination", "lon") //time
 
-      val history_columns = Seq("_id/**/", "origin", "flight", "course", "aircraft", "callsign",
+      val history_columns = Seq("_id", "origin", "flight", "course", "aircraft", "callsign",
         "registration",  "destination", "date_depart", "date_arrival")
       val active_columns = Seq("_id", "origin", "destination", "lat", "lon", "formatted_date", "aircraft", "speed", "course")
 
