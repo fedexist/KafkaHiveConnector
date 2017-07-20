@@ -204,8 +204,8 @@ object MongoDBTopology extends App {
           .withSetOnInsertFields(List("_id", "origin", "destination", "aircraft"))
 
       val history_mapper = new MongoSetOnInsertMapper()
-        .withSetFields(List("origin", "destination", "aircraft", "flight", "registration", "callsign",  "date_depart"))
-        .withSetOnInsertFields(List("date_arrival"))
+        .withSetFields(List("date_arrival"))
+        .withSetOnInsertFields(List("origin", "destination", "aircraft", "flight", "registration", "callsign",  "date_depart"))
 
       val active_options = new Options()
         .withUrl(mongoURL)
@@ -238,11 +238,9 @@ object MongoDBTopology extends App {
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
 
 
-      stream//.each(new Fields(active_columns.asJava), new SetOnInsertActive, new Fields("$set", "$setOnInsert"))
-            .partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(8)
+      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(8)
 
       stream.each(new Fields(), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
-            //.each(new Fields(history_columns.asJava), new SetOnInsertHistory() , new Fields("$set", "$setOnInsert"))
             .partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(8)
 
       //Storm Config

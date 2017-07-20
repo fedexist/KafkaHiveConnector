@@ -8,9 +8,9 @@ import com.mongodb.MongoClient
 import com.mongodb.MongoClientURI
 import com.mongodb.client.MongoCollection
 import com.mongodb.client.MongoDatabase
-import com.mongodb.client.model.InsertManyOptions
-import com.mongodb.client.model.UpdateOptions
+import com.mongodb.client.model._
 import java.util
+
 import org.bson.Document
 import org.bson.conversions.Bson
 
@@ -71,4 +71,32 @@ class MongoDBClient(val url: String, val collectionName: String){
   def close(): Unit = {
     client.close()
   }
+
+
+  /**
+    * Update a single or all documents in the collection according to the specified arguments.
+    * When upsert set to true, the new document will be inserted if there are no matches to the query filter.
+    *
+    * @param documents_filters Bson documents and filters pair list
+    * @param upsert   a new document should be inserted if there are no matches to the query filter
+    * @param many     whether find all documents according to the query filter
+    */
+  def updateBulk(documents_filters: util.ArrayList[(Document, Bson)], upsert: Boolean, many: Boolean): Unit = {
+
+    val options = new UpdateOptions
+    val bulkoptions = new BulkWriteOptions
+    val operations = new util.ArrayList[WriteModel[Document]]
+    if (upsert) options.upsert(true)
+    for((doc, filter) <- documents_filters){
+
+      if(!many)
+        operations.add(new UpdateOneModel[Document](filter, doc, options))
+      else
+        operations.add(new UpdateManyModel[Document](filter, doc, options))
+
+    }
+    collection.bulkWrite(operations, bulkoptions)
+  }
+
+
 }

@@ -6,12 +6,14 @@ import org.apache.storm.topology.FailedException
 
 import scala.collection.JavaConversions._
 import com.google.common.collect.Lists
+import com.mongodb.client.model.UpdateOneModel
 import org.apache.commons.lang.Validate
 import org.apache.storm.trident.operation.TridentCollector
 import org.apache.storm.trident.tuple.TridentTuple
-import org.bson.Document
+import org.bson.{BSON, Document}
 import org.apache.storm.trident.state.State
 import org.apache.storm.mongodb.common.mapper.MongoMapper
+import org.bson.conversions.Bson
 import org.slf4j.{Logger, LoggerFactory}
 
 class Options extends Serializable {
@@ -58,23 +60,25 @@ class MongoState(_map : util.Map[_,_], _options: Options) extends State {
   }
 
   def updateState (tuples: util.List[TridentTuple], collector: TridentCollector): Unit = {
-    //val documents = Lists.newArrayList[Document]
+
+    val documents = Lists.newArrayList[(Document, Bson)]
 
     for (tuple <- tuples) {
-      val document = options.mapper.toDocument (tuple)
-      //documents.add(document)
 
+      val document = options.mapper.toDocument (tuple)
       val filter : Document = new Document().append("_id", tuple.getIntegerByField("_id"))
 
-      try
-        mongoClient.update(filter, document , upsert = true, many = false)
-      catch {
-        case e: Exception => LOG.warn ("Batch write failed but some requests might have succeeded. Triggering replay.", e)
-          throw new FailedException (e)
-      }
-
+      documents.add((document, filter))
 
     }
+
+    try
+      mongoClient.updateBulk(documents , upsert = true, many = false)
+    catch {
+      case e: Exception => LOG.warn ("Batch write failed but some requests might have succeeded. Triggering replay.", e)
+        throw new FailedException (e)
+    }
+
 
 
   }
