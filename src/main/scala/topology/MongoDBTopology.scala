@@ -2,7 +2,7 @@ package topology
 
 import java.text.SimpleDateFormat
 
-import clients.{MongoSetOnInsertMapper, MongoStateFactory, MongoStateUpdater, Options}
+import clients._
 import org.bson.Document
 
 import scala.util.Random
@@ -28,9 +28,7 @@ object MongoDBTopology extends App {
   import play.api.libs.json.{JsValue, Json}
 
   import scala.collection.JavaConverters._
-  import scala.collection.concurrent
   import scala.collection.concurrent.TrieMap
-  import scala.collection.mutable
 
     object idLookup extends BaseFunction{
 
@@ -210,12 +208,12 @@ object MongoDBTopology extends App {
         .withSetFields(List("date_arrival"))
         .withSetOnInsertFields(List("origin", "destination", "aircraft", "flight", "registration", "callsign",  "date_depart"))
 
-      val active_options = new Options()
+      val active_options = new MongoState#Options()
         .withUrl(mongoURL)
         .withCollectionName(active_collection)
         .withMapper(active_mapper)
 
-      val history_options = new Options()
+      val history_options = new MongoState#Options()
         .withUrl(mongoURL)
         .withCollectionName(history_collection)
         .withMapper(history_mapper)
@@ -248,7 +246,8 @@ object MongoDBTopology extends App {
 
       //Storm Config
       val config = new Config
-      config.setMaxTaskParallelism(10)
+      config.setNumAckers(1)
+      config.setMaxTaskParallelism(7)
       config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
       config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
       config.put(Config.STORM_ZOOKEEPER_PORT, new Integer(2181))

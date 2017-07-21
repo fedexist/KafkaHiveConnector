@@ -15,28 +15,30 @@ import org.apache.storm.mongodb.common.mapper.MongoMapper
 import org.bson.conversions.Bson
 import org.slf4j.{Logger, LoggerFactory}
 
-class Options extends Serializable {
-  var url : String = _
-  var collectionName : String = _
-  var mapper : MongoMapper = _
 
-  def withUrl(url: String): Options = {
-    this.url = url
-    this
+class MongoState(_map : util.Map[_,_], _options: MongoState#Options) extends State {
+
+  class Options extends Serializable {
+    var url : String = _
+    var collectionName : String = _
+    var mapper : MongoMapper = _
+
+    def withUrl(url: String): Options = {
+      this.url = url
+      this
+    }
+
+    def withCollectionName(collectionName: String): Options = {
+      this.collectionName = collectionName
+      this
+    }
+
+    def withMapper(mapper: MongoMapper): Options = {
+      this.mapper = mapper
+      this
+    }
   }
 
-  def withCollectionName(collectionName: String): Options = {
-    this.collectionName = collectionName
-    this
-  }
-
-  def withMapper(mapper: MongoMapper): Options = {
-    this.mapper = mapper
-    this
-  }
-}
-
-class MongoState(_map : util.Map[_,_], _options: Options) extends State {
 
   private val LOG = LoggerFactory.getLogger(classOf[MongoState])
   private val options: Options = _options
