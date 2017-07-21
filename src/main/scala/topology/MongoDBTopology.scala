@@ -208,12 +208,12 @@ object MongoDBTopology extends App {
         .withSetFields(List("date_arrival"))
         .withSetOnInsertFields(List("origin", "destination", "aircraft", "flight", "registration", "callsign",  "date_depart"))
 
-      val active_options = new MongoState#Options()
+      val active_options = new Options()
         .withUrl(mongoURL)
         .withCollectionName(active_collection)
         .withMapper(active_mapper)
 
-      val history_options = new MongoState#Options()
+      val history_options = new Options()
         .withUrl(mongoURL)
         .withCollectionName(history_collection)
         .withMapper(history_mapper)
