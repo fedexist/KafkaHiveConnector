@@ -248,6 +248,9 @@ object MongoDBTopology extends App {
       val config = new Config
       config.setNumAckers(1)
       config.setMaxTaskParallelism(7)
+      config.setMaxSpoutPending(500)
+      config.setTopologyWorkerMaxHeapSize(4096)
+      config.put(Config.WORKER_HEAP_MEMORY_MB, new Integer(4096))
       config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
       config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
       config.put(Config.STORM_ZOOKEEPER_PORT, new Integer(2181))
