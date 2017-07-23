@@ -68,31 +68,6 @@ object MongoDBTopology extends App {
 
     }
 
-    class DateCreation extends BaseFunction {
-
-      override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
-
-        val time = tuple.getLongByField("time")
-
-        collector.emit(new Values(new util.Date(time*1000)))
-
-      }
-
-
-    }
-
-    class DepartureArrivalDates extends BaseFunction {
-
-      override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
-
-        val time = tuple.getLongByField("time")
-
-        collector.emit(new Values(new util.Date(time*1000), new util.Date(time*1000)))
-
-      }
-  }
-
-
   class ParseJSON extends BaseFunction {
       /**
         * Takes a tuple adds the RDNS and emits a new tuple.
@@ -181,7 +156,7 @@ object MongoDBTopology extends App {
       //Topology
       val topology: TridentTopology = new TridentTopology
 
-      val stream: trident.Stream = topology.newStream("jsonEmitter669", kafkaSpout)
+      val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
         .each(new Fields("str"), new ParseJSON , new Fields((((json_fields :+ "formatted_date") :+ "date_depart") :+ "date_arrival").asJava))
         .each(new Fields((json_fields :+ "formatted_date").asJava), idLookup, new Fields("_id"))
 

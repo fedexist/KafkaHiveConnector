@@ -71,7 +71,7 @@ class MongoState(_map : util.Map[_,_], _options: Options) extends State {
 
     }
 
-    LOG.info(s"Bulk writing  ${documents.size()} documents")
+    LOG.info(s"Bulk writing  ${documents.size()} documents on ${options.url}.${options.collectionName}")
     try
       mongoClient.updateBulk(documents , upsert = true, many = false)
     catch {
