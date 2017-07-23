@@ -60,9 +60,9 @@ object MongoDBTopology extends App {
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
         val key = tuple.getString(1)
-        val time : util.Date = tuple.getValueByField("formatted_date")[util.Date]
+        val time = tuple.getValueByField("formatted_date")
 
-        collector.emit(new Values(new Integer(createOrGetId(key, time.getTime))))
+        collector.emit(new Values(new Integer(createOrGetId(key, time.asInstanceOf[util.Date].getTime))))
 
       }
 
