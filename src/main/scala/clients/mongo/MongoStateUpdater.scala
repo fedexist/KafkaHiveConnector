@@ -1,7 +1,6 @@
-package clients
+package clients.mongo
 
 import java.util
-import java.util.List
 
 import org.apache.storm.trident.operation.TridentCollector
 import org.apache.storm.trident.state.BaseStateUpdater

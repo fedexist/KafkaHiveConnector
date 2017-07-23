@@ -1,16 +1,14 @@
-package clients
+package clients.mongo
 
 /**
   * Created by Stefano on 19/07/2017.
   */
 
-import com.mongodb.MongoClient
-import com.mongodb.MongoClientURI
-import com.mongodb.client.MongoCollection
-import com.mongodb.client.MongoDatabase
-import com.mongodb.client.model._
 import java.util
 
+import com.mongodb.{MongoClient, MongoClientURI}
+import com.mongodb.client.MongoDatabase
+import com.mongodb.client.model._
 import org.bson.Document
 import org.bson.conversions.Bson
 

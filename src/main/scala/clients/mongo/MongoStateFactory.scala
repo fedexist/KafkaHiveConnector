@@ -1,8 +1,9 @@
-package clients
+package clients.mongo
+
+import java.util
 
 import org.apache.storm.task.IMetricsContext
 import org.apache.storm.trident.state.{State, StateFactory}
-import java.util
 
 /**
   * Created by Stefano on 19/07/2017.

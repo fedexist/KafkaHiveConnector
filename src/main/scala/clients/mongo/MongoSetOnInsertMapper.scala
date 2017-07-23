@@ -1,4 +1,4 @@
-package clients
+package clients.mongo
 
 import org.apache.storm.mongodb.common.mapper.MongoMapper
 import org.apache.storm.tuple.ITuple

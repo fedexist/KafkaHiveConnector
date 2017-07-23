@@ -1,11 +1,10 @@
 package topology
 
-import java.text.SimpleDateFormat
-
 import clients._
+import clients.mongo.{MongoSetOnInsertMapper, MongoStateFactory, MongoStateUpdater, Options}
+import kafka.api.{OffsetFetchRequest, OffsetRequest}
 import org.bson.Document
 
-import scala.util.Random
 
 /**
   * Created by Stefano on 19/07/2017.
@@ -73,7 +72,9 @@ object MongoDBTopology extends App {
 
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
-        collector.emit(new Values(new util.Date()))
+        val time = tuple.getLongByField("time")
+
+        collector.emit(new Values(new util.Date(time)))
 
       }
 
@@ -84,65 +85,12 @@ object MongoDBTopology extends App {
 
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
+        val time = tuple.getLongByField("time")
 
-        collector.emit(new Values(new util.Date()/*.toString("YYYY-MM-DD'T'hh:mm:ss")*/,
-          new util.Date()/*.toString("YYYY-MM-DD'T'hh:mm:ss")*/))
+        collector.emit(new Values(new util.Date(time), new util.Date(time)))
 
       }
   }
-
-    class SetOnInsertActive extends BaseFunction {
-
-      override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
-
-        //Set
-        val SetMap : util.HashMap[String, AnyRef] = new util.HashMap()
-        SetMap.put("lat", tuple.getDoubleByField("lat") )
-        SetMap.put("lon", tuple.getDoubleByField("lon"))
-        SetMap.put("speed", tuple.getIntegerByField("speed"))
-        SetMap.put("course", tuple.getIntegerByField("course"))
-        SetMap.put("formatted_date", tuple.getStringByField("formatted_date"))
-
-        //SetOnInsert
-        val SetOnInsertMap : util.HashMap[String, AnyRef] = new util.HashMap()
-        SetOnInsertMap.put("id", tuple.getIntegerByField("id"))
-        SetOnInsertMap.put("origin", tuple.getStringByField("origin"))
-        SetOnInsertMap.put("destination", tuple.getStringByField("destination"))
-        SetOnInsertMap.put("aircraft", tuple.getStringByField("aircraft"))
-
-        val set : Document = new Document(SetMap)
-        val setonInsert : Document = new Document(SetOnInsertMap)
-
-        collector.emit(new Values(set, setonInsert))
-
-      }
-    }
-
-  class SetOnInsertHistory extends BaseFunction {
-
-    override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
-
-      val SetOnInsertMap : util.HashMap[String, AnyRef] = new util.HashMap()
-      SetOnInsertMap.put("id", tuple.getIntegerByField("id"))
-      SetOnInsertMap.put("origin", tuple.getStringByField("origin"))
-      SetOnInsertMap.put("destination", tuple.getStringByField("destination"))
-      SetOnInsertMap.put("aircraft", tuple.getStringByField("aircraft"))
-      SetOnInsertMap.put("flight", tuple.getIntegerByField("flight"))
-      SetOnInsertMap.put("registration", tuple.getStringByField("registration"))
-      SetOnInsertMap.put("callsign", tuple.getStringByField("callsign"))
-      SetOnInsertMap.put("date_depart", tuple.getStringByField("date_depart"))
-
-
-      val set : Document = new Document("date_arrival", tuple.getStringByField("date_arrival"))
-      val setonInsert : Document = new Document(SetOnInsertMap)
-
-      collector.emit(new Values(set, setonInsert))
-
-    }
-  }
-
-
-
 
 
   class ParseJSON extends BaseFunction {
@@ -222,9 +170,8 @@ object MongoDBTopology extends App {
       val active_factory = new MongoStateFactory(active_options)
       val history_factory = new MongoStateFactory(history_options)
 
-
       //KafkaSpout
-      val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic2")
+      val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic2", "air_traffic_consumer")
       spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme())
       val kafkaSpout = new TransactionalTridentKafkaSpout(spoutConf)
 
@@ -232,16 +179,14 @@ object MongoDBTopology extends App {
       //Topology
       val topology: TridentTopology = new TridentTopology
 
-
-      val stream: trident.Stream = topology.newStream("jsonEmitter" + new Random().nextInt(), kafkaSpout)
+      val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
         .each(new Fields("str"), new ParseJSON , new Fields((json_fields :+ "time").asJava))
-        .each(new Fields(), new DateCreation, new Fields("formatted_date"))
+        .each(new Fields("time"), new DateCreation, new Fields("formatted_date"))
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
-
 
       stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(15)
 
-      stream.each(new Fields(), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
+      stream.each(new Fields("time"), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
             .partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(15)
 
       //Storm Config

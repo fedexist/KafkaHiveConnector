@@ -1,19 +1,18 @@
-package clients
+package clients.mongo
 
 import java.{lang, util}
 
+import org.apache.commons.lang.Validate
+import org.apache.storm.mongodb.common.mapper.MongoMapper
 import org.apache.storm.topology.FailedException
+import org.apache.storm.trident.operation.TridentCollector
+import org.apache.storm.trident.state.State
+import org.apache.storm.trident.tuple.TridentTuple
+import org.bson.Document
+import org.bson.conversions.Bson
+import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
-import com.mongodb.client.model.UpdateOneModel
-import org.apache.commons.lang.Validate
-import org.apache.storm.trident.operation.TridentCollector
-import org.apache.storm.trident.tuple.TridentTuple
-import org.bson.{BSON, Document}
-import org.apache.storm.trident.state.State
-import org.apache.storm.mongodb.common.mapper.MongoMapper
-import org.bson.conversions.Bson
-import org.slf4j.{Logger, LoggerFactory}
 
 class Options extends Serializable {
   var url : String = _
