@@ -34,7 +34,7 @@ object MongoDBTopology extends App {
       var idLookupMap = new TrieMap[String,(Int, Long)]
       var lastId = 0
 
-      def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60
+      def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2*1000 < 60000
 
       def createOrGetId(_key : String, _time : Long) : Int = {
 
@@ -179,7 +179,7 @@ object MongoDBTopology extends App {
       //Topology
       val topology: TridentTopology = new TridentTopology
 
-      val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
+      val stream: trident.Stream = topology.newStream("jsonEmitter666", kafkaSpout)
         .each(new Fields("str"), new ParseJSON , new Fields((json_fields :+ "time").asJava))
         .each(new Fields("time"), new DateCreation, new Fields("formatted_date"))
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
@@ -193,7 +193,7 @@ object MongoDBTopology extends App {
       val config = new Config
       config.setNumAckers(1)
       config.setMaxTaskParallelism(15)
-      config.setMaxSpoutPending(1400)
+      config.setMaxSpoutPending(3000)
       config.put(Config.WORKER_HEAP_MEMORY_MB, new Integer(4096))
       config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
       config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
