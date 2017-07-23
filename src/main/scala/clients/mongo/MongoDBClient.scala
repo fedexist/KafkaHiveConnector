@@ -11,6 +11,7 @@ import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model._
 import org.bson.Document
 import org.bson.conversions.Bson
+import org.slf4j.LoggerFactory
 
 
 class MongoDBClient(val url: String, val collectionName: String){
@@ -23,6 +24,7 @@ class MongoDBClient(val url: String, val collectionName: String){
   private val db: MongoDatabase = client.getDatabase(uri.getDatabase)
   //Gets a collection.
   private val collection = db.getCollection(collectionName)
+  private val LOG = LoggerFactory.getLogger(classOf[MongoDBClient])
 
   /**
     * Inserts one or more documents.
@@ -96,7 +98,11 @@ class MongoDBClient(val url: String, val collectionName: String){
         operations.add(new UpdateManyModel[Document](current._2, current._1, options))
 
     }
-    collection.bulkWrite(operations, bulkoptions)
+    val result = collection.bulkWrite(operations, bulkoptions)
+    if(!result.wasAcknowledged())
+      LOG.warn("BulkWrite was not acknowledged by target db.")
+    LOG.info(s"BulkWrite result: was acknowledged: ${result.wasAcknowledged()} with ${result.getInsertedCount} inserts and ${result.getModifiedCount} updates.")
+
   }
 
 
