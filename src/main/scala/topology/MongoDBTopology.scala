@@ -34,7 +34,7 @@ object MongoDBTopology extends App {
       var idLookupMap = new TrieMap[String,(Int, Long)]
       var lastId = 0
 
-      def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60000
+      def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60
 
       def createOrGetId(_key : String, _time : Long) : Int = {
 
@@ -74,7 +74,7 @@ object MongoDBTopology extends App {
 
         val time = tuple.getLongByField("time")
 
-        collector.emit(new Values(new util.Date(time)))
+        collector.emit(new Values(new util.Date(time*1000)))
 
       }
 
@@ -87,7 +87,7 @@ object MongoDBTopology extends App {
 
         val time = tuple.getLongByField("time")
 
-        collector.emit(new Values(new util.Date(time), new util.Date(time)))
+        collector.emit(new Values(new util.Date(time*1000), new util.Date(time*1000)))
 
       }
   }
@@ -193,7 +193,7 @@ object MongoDBTopology extends App {
       val config = new Config
       config.setNumAckers(1)
       config.setMaxTaskParallelism(15)
-      config.setMaxSpoutPending(400)
+      config.setMaxSpoutPending(1400)
       config.put(Config.WORKER_HEAP_MEMORY_MB, new Integer(4096))
       config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
       config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
