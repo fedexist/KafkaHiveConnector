@@ -184,16 +184,16 @@ object MongoDBTopology extends App {
         .each(new Fields("time"), new DateCreation, new Fields("formatted_date"))
         .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
 
-      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(15)
+      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(7)
 
       stream.each(new Fields("time"), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
-            .partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(15)
+            .partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(7)
 
       //Storm Config
       val config = new Config
       config.setNumAckers(1)
       config.setMaxTaskParallelism(15)
-      config.put(Config.TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE, new Integer(10))
+      config.setMaxSpoutPending(400)
       config.put(Config.WORKER_HEAP_MEMORY_MB, new Integer(4096))
       config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
       config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
