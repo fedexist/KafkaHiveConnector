@@ -101,7 +101,7 @@ class MongoDBClient(val url: String, val collectionName: String){
     val result = collection.bulkWrite(operations, bulkoptions)
     if(!result.wasAcknowledged())
       LOG.warn("BulkWrite was not acknowledged by target db.")
-    LOG.info(s"BulkWrite result: was acknowledged: ${result.wasAcknowledged()} with ${result.getInsertedCount} inserts and ${result.getModifiedCount} updates.")
+    LOG.info(s"BulkWrite was acknowledged with ${result.getInsertedCount} inserts, ${result.getModifiedCount} updates and ${result.getMatchedCount} matches.")
 
   }
 

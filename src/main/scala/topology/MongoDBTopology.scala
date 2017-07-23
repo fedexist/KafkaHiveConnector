@@ -34,7 +34,7 @@ object MongoDBTopology extends App {
       var idLookupMap = new TrieMap[String,(Int, Long)]
       var lastId = 0
 
-      def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2*1000 < 60000
+      def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60000
 
       def createOrGetId(_key : String, _time : Long) : Int = {
 
@@ -60,9 +60,9 @@ object MongoDBTopology extends App {
       override final def execute(tuple: TridentTuple, collector: TridentCollector): Unit = {
 
         val key = tuple.getString(1)
-        val time = tuple.getLong(11)
+        val time : util.Date = tuple.getValueByField("formatted_date")[util.Date]
 
-        collector.emit(new Values(new Integer(createOrGetId(key, time))))
+        collector.emit(new Values(new Integer(createOrGetId(key, time.getTime))))
 
       }
 
@@ -119,7 +119,9 @@ object MongoDBTopology extends App {
             new Integer(result("altitude").toString.toInt),
             result("destination").toString.stripPrefix("\"").stripSuffix("\""),
             new java.lang.Double(result("lon").toString.toDouble),
-            new java.lang.Long(result("time").toString.toLong)))
+            new util.Date(result("time").toString.toLong),
+            new util.Date(result("time").toString.toLong),
+            new util.Date(result("time").toString.toLong)))
         } catch {
 
           case e: Exception => println("Error parsing: " + json_string); println(e)
@@ -179,22 +181,19 @@ object MongoDBTopology extends App {
       //Topology
       val topology: TridentTopology = new TridentTopology
 
-      val stream: trident.Stream = topology.newStream("jsonEmitter666", kafkaSpout)
-        .each(new Fields("str"), new ParseJSON , new Fields((json_fields :+ "time").asJava))
-        .each(new Fields("time"), new DateCreation, new Fields("formatted_date"))
-        .each(new Fields((json_fields :+ "time").asJava), idLookup, new Fields("_id"))
+      val stream: trident.Stream = topology.newStream("jsonEmitter669", kafkaSpout)
+        .each(new Fields("str"), new ParseJSON , new Fields((((json_fields :+ "formatted_date") :+ "date_depart") :+ "date_arrival").asJava))
+        .each(new Fields((json_fields :+ "formatted_date").asJava), idLookup, new Fields("_id"))
 
-      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(7)
+      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(15)
 
-      stream.each(new Fields("time"), new DepartureArrivalDates(), new Fields("date_depart", "date_arrival"))
-            .partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(7)
+      stream.partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(15)
 
       //Storm Config
       val config = new Config
       config.setNumAckers(1)
       config.setMaxTaskParallelism(15)
-      config.setMaxSpoutPending(3000)
-      config.put(Config.WORKER_HEAP_MEMORY_MB, new Integer(4096))
+      config.setMaxSpoutPending(1500)
       config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
       config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
       config.put(Config.STORM_ZOOKEEPER_PORT, new Integer(2181))
