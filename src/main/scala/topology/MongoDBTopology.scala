@@ -11,7 +11,6 @@ import org.bson.Document
   */
 object MongoDBTopology extends App {
 
-  import org.apache.storm.mongodb.common.mapper.SimpleMongoMapper
   import java.util
 
   import org.apache.storm.kafka._
@@ -150,6 +149,7 @@ object MongoDBTopology extends App {
       //KafkaSpout
       val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic2", "air_traffic_consumer")
       spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme())
+      spoutConf.fetchSizeBytes = 1024*256
       val kafkaSpout = new TransactionalTridentKafkaSpout(spoutConf)
 
 
