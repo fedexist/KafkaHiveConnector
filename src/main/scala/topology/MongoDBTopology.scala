@@ -150,6 +150,7 @@ object MongoDBTopology extends App {
       val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic2", "air_traffic_consumer")
       spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme())
       spoutConf.fetchSizeBytes = 1024*256
+      spoutConf.startOffsetTime = OffsetRequest.LatestTime
       val kafkaSpout = new TransactionalTridentKafkaSpout(spoutConf)
 
 
