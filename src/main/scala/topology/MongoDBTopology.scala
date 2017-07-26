@@ -159,18 +159,18 @@ object MongoDBTopology extends App {
       //Topology
       val topology: TridentTopology = new TridentTopology
 
-      val stream: trident.Stream = topology.newStream(s"jsonEmitter-${new Random().nextInt()}", kafkaSpout).parallelismHint(15)
+      val stream: trident.Stream = topology.newStream(s"jsonEmitter-${new Random().nextInt()}", kafkaSpout).parallelismHint(90)
         .each(new Fields("str"), new ParseJSON , new Fields((((json_fields :+ "formatted_date") :+ "date_depart") :+ "date_arrival").asJava))
         .each(new Fields((json_fields :+ "formatted_date").asJava), idLookup, new Fields("_id"))
 
-      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(5)
+      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields())
 
-      stream.partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(5)
+      stream.partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields())
 
       //Storm Config
       val config = new Config
       config.setNumAckers(1)
-      config.setMaxTaskParallelism(25)
+      config.setMaxTaskParallelism(100)
       config.setMaxSpoutPending(1500)
       config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
       config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
