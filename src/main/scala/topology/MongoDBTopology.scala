@@ -5,6 +5,8 @@ import clients.mongo.{MongoSetOnInsertMapper, MongoStateFactory, MongoStateUpdat
 import kafka.api.{OffsetFetchRequest, OffsetRequest}
 import org.bson.Document
 
+import scala.util.Random
+
 
 /**
   * Created by Stefano on 19/07/2017.
@@ -149,7 +151,7 @@ object MongoDBTopology extends App {
       //KafkaSpout
       val spoutConf = new TridentKafkaConfig(zkHosts_2, "air_traffic2", "air_traffic_consumer")
       spoutConf.scheme = new SchemeAsMultiScheme(new StringScheme())
-      spoutConf.fetchSizeBytes = 1024*256
+      spoutConf.fetchSizeBytes = 1024*512
       spoutConf.startOffsetTime = OffsetRequest.LatestTime
       val kafkaSpout = new TransactionalTridentKafkaSpout(spoutConf)
 
@@ -157,7 +159,7 @@ object MongoDBTopology extends App {
       //Topology
       val topology: TridentTopology = new TridentTopology
 
-      val stream: trident.Stream = topology.newStream("jsonEmitter", kafkaSpout)
+      val stream: trident.Stream = topology.newStream(s"jsonEmitter-${new Random().nextInt()}", kafkaSpout)
         .each(new Fields("str"), new ParseJSON , new Fields((((json_fields :+ "formatted_date") :+ "date_depart") :+ "date_arrival").asJava))
         .each(new Fields((json_fields :+ "formatted_date").asJava), idLookup, new Fields("_id"))
 
