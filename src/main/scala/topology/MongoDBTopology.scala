@@ -35,7 +35,7 @@ object MongoDBTopology extends App {
       var idLookupMap = new TrieMap[String,(Int, Long)]
       var lastId = 0
 
-      def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 60000
+      def isActive(tuple: (String, (Int, Long))) : Boolean = DateTime.now(DateTimeZone.UTC).getMillis - tuple._2._2 < 120000
 
       def createOrGetId(_key : String, _time : Long) : Int = {
 
@@ -159,18 +159,18 @@ object MongoDBTopology extends App {
       //Topology
       val topology: TridentTopology = new TridentTopology
 
-      val stream: trident.Stream = topology.newStream(s"jsonEmitter-${new Random().nextInt()}", kafkaSpout)
+      val stream: trident.Stream = topology.newStream(s"jsonEmitter-${new Random().nextInt()}", kafkaSpout).parallelismHint(15)
         .each(new Fields("str"), new ParseJSON , new Fields((((json_fields :+ "formatted_date") :+ "date_depart") :+ "date_arrival").asJava))
         .each(new Fields((json_fields :+ "formatted_date").asJava), idLookup, new Fields("_id"))
 
-      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(15)
+      stream.partitionPersist(active_factory, new Fields(active_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(5)
 
-      stream.partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(15)
+      stream.partitionPersist(history_factory, new Fields(history_columns.asJava), new MongoStateUpdater(), new Fields()).parallelismHint(5)
 
       //Storm Config
       val config = new Config
       config.setNumAckers(1)
-      config.setMaxTaskParallelism(15)
+      config.setMaxTaskParallelism(25)
       config.setMaxSpoutPending(1500)
       config.put(Config.NIMBUS_SEEDS, util.Arrays.asList(master_2))
       config.put(Config.NIMBUS_THRIFT_PORT, new Integer(6627))
