@@ -95,9 +95,9 @@ object MongoDBTopology extends App {
             new Integer(result("altitude").toString.toInt),
             result("destination").toString.stripPrefix("\"").stripSuffix("\""),
             new java.lang.Double(result("lon").toString.toDouble),
-            new util.Date(result("time").toString.toLong*1000),
-            new util.Date(result("time").toString.toLong*1000),
-            new util.Date(result("time").toString.toLong*1000)))
+            new util.Date(/*result("time").toString.toLong*1000*/),
+            new util.Date(/*result("time").toString.toLong*1000*/),
+            new util.Date(/*result("time").toString.toLong*1000*/)))
         } catch {
 
           case e: Exception => println("Error parsing: " + json_string); println(e)
